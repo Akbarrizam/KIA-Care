@@ -62,8 +62,50 @@ class SpeechCaller {
     });
   }
 
+  // Nada notifikasi khusus layar HP Pasien (3 nada ramah & ceria)
+  public playPatientAlert(): Promise<void> {
+    return new Promise((resolve) => {
+      try {
+        const ctx = this.getAudioContext();
+        const now = ctx.currentTime;
+
+        const freqs = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+        freqs.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          const start = now + idx * 0.12;
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, start);
+          gain.gain.setValueAtTime(0.25, start);
+          gain.gain.exponentialRampToValueAtTime(0.001, start + 0.35);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(start);
+          osc.stop(start + 0.35);
+        });
+
+        setTimeout(() => {
+          resolve();
+        }, 600);
+      } catch (err) {
+        console.warn('Patient Alert Sound Error:', err);
+        resolve();
+      }
+    });
+  }
+
+  // Getaran Haptik HP Pasien
+  public triggerVibration(pattern: number[] = [200, 100, 200, 100, 400]) {
+    try {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        navigator.vibrate(pattern);
+      }
+    } catch {
+      // Ignore if not supported on desktop
+    }
+  }
+
   // Mengeja nomor antrian agar terbaca natural dalam bahasa Indonesia
-  // Contoh: 'A-025' -> 'A dua puluh lima' atau 'A nol dua lima'
   private formatQueueSpelling(queueNumber: string): string {
     const parts = queueNumber.split('-');
     if (parts.length === 2) {

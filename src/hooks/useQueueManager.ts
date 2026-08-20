@@ -43,7 +43,7 @@ export function useQueueManager() {
     }
   }, [myTicket]);
 
-  // Otomatis hilangkan tiket aktif jika antrean sudah selesai/dilewati oleh petugas loket
+  // Otomatis hilangkan tiket aktif jika antrean dilewati atau dibatalkan oleh petugas loket
   useEffect(() => {
     if (!myTicket) return;
     const matchingQueue = queues.find(
@@ -52,9 +52,7 @@ export function useQueueManager() {
 
     if (
       matchingQueue &&
-      (matchingQueue.status === 'completed' ||
-        matchingQueue.status === 'skipped' ||
-        matchingQueue.status === 'cancelled')
+      (matchingQueue.status === 'skipped' || matchingQueue.status === 'cancelled')
     ) {
       setMyTicket(null);
       localStorage.removeItem(STORAGE_KEY_MY_TICKET);
@@ -330,6 +328,38 @@ export function useQueueManager() {
     }
   };
 
+  const submitRating = async (queueId: string, rating: number, feedback?: string) => {
+    const now = new Date().toISOString();
+    const updated = queues.map((q) => {
+      if (q.id === queueId) {
+        return {
+          ...q,
+          rating,
+          feedback: feedback?.trim() || null,
+          rating_submitted_at: now,
+        };
+      }
+      return q;
+    });
+
+    broadcastQueues(updated);
+
+    if (isSupabaseConfigured) {
+      try {
+        await supabase
+          .from('queues')
+          .update({
+            rating,
+            feedback: feedback?.trim() || null,
+            rating_submitted_at: now,
+          })
+          .eq('id', queueId);
+      } catch (e) {
+        console.warn('Supabase rating update error:', e);
+      }
+    }
+  };
+
   const resetAllData = async () => {
     localStorage.removeItem(STORAGE_KEY_QUEUES);
     localStorage.removeItem(STORAGE_KEY_SERVICES);
@@ -363,6 +393,7 @@ export function useQueueManager() {
     callNextQueue,
     recallQueue,
     updateQueueStatus,
+    submitRating,
     resetAllData,
     clearMyTicket,
     setMyTicket,

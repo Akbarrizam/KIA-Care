@@ -42,7 +42,10 @@ CREATE TABLE IF NOT EXISTS public.queues (
     called_at TIMESTAMPTZ,
     serving_at TIMESTAMPTZ,
     completed_at TIMESTAMPTZ,
-    queue_date DATE DEFAULT CURRENT_DATE
+    queue_date DATE DEFAULT CURRENT_DATE,
+    rating INT,
+    feedback TEXT,
+    rating_submitted_at TIMESTAMPTZ
 );
 
 -- Indexing

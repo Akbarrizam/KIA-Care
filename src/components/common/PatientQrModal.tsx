@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { QrCode, Copy, Check, Printer, X, Sparkles, Smartphone, Wifi, Edit3 } from 'lucide-react';
+import { QrCode, Copy, Check, Printer, X, Sparkles, Smartphone, Wifi, Globe, Edit3 } from 'lucide-react';
 
 interface PatientQrModalProps {
   isOpen: boolean;
@@ -9,21 +9,29 @@ interface PatientQrModalProps {
 
 export const PatientQrModal: React.FC<PatientQrModalProps> = ({ isOpen, onClose }) => {
   const [copied, setCopied] = useState(false);
-  // Default ke IP jaringan Wi-Fi lokal komputer (192.168.1.11)
   const [customIp, setCustomIp] = useState('192.168.1.11');
-  const [isEditingIp, setIsEditingIp] = useState(false);
+  const [customDomain, setCustomDomain] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
 
   if (!isOpen) return null;
 
-  // Jika diakses dari domain asli / hosting internet gunakan origin, jika di localhost ganti dengan IP lokal Wi-Fi
+  // Deteksi apakah sedang berjalan di localhost atau sudah online di domain internet
   const isLocalhost = typeof window !== 'undefined' && (
     window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1'
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname.startsWith('192.168.')
   );
 
-  const baseUrl = isLocalhost
-    ? `http://${customIp}:5173`
-    : typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173';
+  let baseUrl = '';
+  if (customDomain.trim()) {
+    baseUrl = customDomain.startsWith('http') ? customDomain : `https://${customDomain}`;
+  } else if (isLocalhost) {
+    baseUrl = `http://${customIp}:5173`;
+  } else if (typeof window !== 'undefined') {
+    baseUrl = window.location.origin;
+  } else {
+    baseUrl = 'http://localhost:5173';
+  }
 
   const patientUrl = `${baseUrl}/?mode=pasien`;
 
@@ -54,39 +62,54 @@ export const PatientQrModal: React.FC<PatientQrModalProps> = ({ isOpen, onClose 
             <QrCode className="w-6 h-6" />
           </div>
           <h3 className="text-lg font-black text-[#0a3854] tracking-tight">
-            QR Code Pendaftaran Pasien (Wi-Fi)
+            QR Code Pendaftaran Pasien
           </h3>
           <p className="text-xs text-slate-500">
-            Akses langsung dari HP dalam jaringan Wi-Fi yang sama
+            {isLocalhost && !customDomain
+              ? 'Mode Uji Coba Jaringan Lokal (Wi-Fi)'
+              : 'Akses Online Publik (Dapat Menggunakan Data Seluler)'}
           </p>
         </div>
 
-        {/* IP Wi-Fi Banner / Input */}
+        {/* Connection Type Indicator / Input */}
         <div className="mb-3 bg-emerald-50 border border-emerald-200/80 rounded-2xl p-2.5 text-xs text-emerald-900 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-left">
-            <Wifi className="w-4 h-4 text-emerald-700 shrink-0" />
-            <div>
+          <div className="flex items-center gap-2 text-left truncate">
+            {isLocalhost && !customDomain ? (
+              <Wifi className="w-4 h-4 text-emerald-700 shrink-0" />
+            ) : (
+              <Globe className="w-4 h-4 text-emerald-700 shrink-0" />
+            )}
+            <div className="truncate">
               <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 block">
-                IP Komputer di Wi-Fi:
+                {isLocalhost && !customDomain ? 'Alamat Uji Coba Wi-Fi:' : 'Alamat Domain Online:'}
               </span>
-              {isEditingIp ? (
+              {isEditing ? (
                 <input
                   type="text"
-                  value={customIp}
-                  onChange={(e) => setCustomIp(e.target.value)}
-                  className="px-2 py-0.5 text-xs font-mono font-bold bg-white border border-emerald-400 rounded-md focus:outline-none w-32"
+                  placeholder={isLocalhost ? '192.168.1.11' : 'https://kia-care.vercel.app'}
+                  value={customDomain || customIp}
+                  onChange={(e) => {
+                    if (e.target.value.includes('.') && !e.target.value.startsWith('192.')) {
+                      setCustomDomain(e.target.value);
+                    } else {
+                      setCustomIp(e.target.value);
+                    }
+                  }}
+                  className="px-2 py-0.5 text-xs font-mono font-bold bg-white border border-emerald-400 rounded-md focus:outline-none w-48"
                 />
               ) : (
-                <span className="font-mono font-bold text-xs">{customIp}</span>
+                <span className="font-mono font-bold text-xs truncate block">
+                  {baseUrl}
+                </span>
               )}
             </div>
           </div>
           <button
-            onClick={() => setIsEditingIp(!isEditingIp)}
-            className="text-[11px] font-semibold text-emerald-700 hover:underline flex items-center gap-1 cursor-pointer"
+            onClick={() => setIsEditing(!isEditing)}
+            className="text-[11px] font-semibold text-emerald-700 hover:underline flex items-center gap-1 cursor-pointer shrink-0 ml-2"
           >
             <Edit3 className="w-3 h-3" />
-            <span>{isEditingIp ? 'Selesai' : 'Ubah IP'}</span>
+            <span>{isEditing ? 'Selesai' : 'Ubah URL'}</span>
           </button>
         </div>
 
@@ -114,7 +137,11 @@ export const PatientQrModal: React.FC<PatientQrModalProps> = ({ isOpen, onClose 
 
           <div className="mt-3 flex items-center justify-center gap-1.5 text-xs text-teal-100">
             <Smartphone className="w-4 h-4 text-teal-300 animate-bounce" />
-            <span>Pastikan HP tersambung ke Wi-Fi yang sama</span>
+            <span>
+              {isLocalhost && !customDomain
+                ? 'Buka kamera HP Anda & arahkan ke QR'
+                : 'Bisa scan menggunakan Kuota Data Seluler'}
+            </span>
           </div>
         </div>
 

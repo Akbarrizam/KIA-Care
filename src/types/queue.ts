@@ -35,6 +35,9 @@ export interface QueueItem {
   serving_at?: string | null;
   completed_at?: string | null;
   queue_date?: string;
+  rating?: number | null;
+  feedback?: string | null;
+  rating_submitted_at?: string | null;
 }
 
 export interface PatientTicket {

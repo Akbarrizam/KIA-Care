@@ -49,6 +49,7 @@ export function App() {
     recallQueue,
     updateQueueStatus,
     takeQueue,
+    submitRating,
     resetAllData,
     clearMyTicket,
   } = useQueueManager();
@@ -200,6 +201,7 @@ export function App() {
                 }}
                 onTakeNewTicket={() => setPatientScreen('select-service')}
                 onCancelTicket={clearMyTicket}
+                onSubmitRating={submitRating}
               />
               <BottomNav
                 activeTab={patientTab}
